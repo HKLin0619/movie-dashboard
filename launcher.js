@@ -8,27 +8,29 @@ const unzipper = require('unzipper');
 const writeFile = promisify(fs.writeFile);
 const readFile = promisify(fs.readFile);
 
-// 配置
-const CONFIG_FILE = path.join(__dirname, 'launcher-config.json');
-const PROJECT_DIR = __dirname;
+// Configuration - Determine correct project directory
+// When packaged with pkg, use the directory where the exe is located
+// When running as script, use current working directory
+const PROJECT_DIR = process.pkg ? path.dirname(process.execPath) : process.cwd();
+const CONFIG_FILE = path.join(PROJECT_DIR, 'launcher-config.json');
 
-// 加载配置
+// Load configuration
 async function loadConfig() {
   try {
     const data = await readFile(CONFIG_FILE, 'utf8');
     return JSON.parse(data);
   } catch (error) {
-    console.error('❌ 无法读取配置文件，请先设置 GitHub repo 信息');
+    console.error('❌ Cannot read config file, please set GitHub repo information first');
     process.exit(1);
   }
 }
 
-// 保存配置
+// Save configuration
 async function saveConfig(config) {
   await writeFile(CONFIG_FILE, JSON.stringify(config, null, 2));
 }
 
-// 获取 GitHub 最新 commit SHA
+// Get latest GitHub commit SHA
 async function getLatestCommitSha(owner, repo) {
   return new Promise((resolve, reject) => {
     const options = {
@@ -48,17 +50,17 @@ async function getLatestCommitSha(owner, repo) {
           const commit = JSON.parse(data);
           resolve(commit.sha);
         } else {
-          reject(new Error(`GitHub API 返回 ${res.statusCode}`));
+          reject(new Error(`GitHub API returned status ${res.statusCode}`));
         }
       });
     }).on('error', reject);
   });
 }
 
-// 下载并解压最新代码
+// Download and extract latest code
 async function downloadLatestCode(owner, repo, targetDir) {
   return new Promise((resolve, reject) => {
-    console.log('📥 正在下载最新代码...');
+    console.log('📥 Downloading latest code...');
     
     const zipUrl = `https://github.com/${owner}/${repo}/archive/refs/heads/main.zip`;
     const tempZip = path.join(targetDir, 'temp-update.zip');
@@ -66,48 +68,56 @@ async function downloadLatestCode(owner, repo, targetDir) {
 
     https.get(zipUrl, (response) => {
       if (response.statusCode === 302 || response.statusCode === 301) {
-        // 处理重定向
+        // Handle redirect
         https.get(response.headers.location, (res) => {
           res.pipe(file);
           file.on('finish', () => {
             file.close();
-            console.log('✅ 下载完成，正在解压...');
+            console.log('✅ Download complete, extracting...');
             
-            // 解压文件
+            // Extract files
             fs.createReadStream(tempZip)
               .pipe(unzipper.Extract({ path: targetDir }))
               .on('close', () => {
-                // 删除临时文件
+                // Delete temporary file
                 fs.unlinkSync(tempZip);
                 
-                // 移动文件（GitHub zip 会包含一个额外的文件夹）
+                // Move files (GitHub zip includes an extra folder)
                 const extractedFolder = path.join(targetDir, `${repo}-main`);
                 if (fs.existsSync(extractedFolder)) {
-                  // 复制文件到项目根目录
+                  // Copy files to project root
                   const files = fs.readdirSync(extractedFolder);
                   files.forEach(file => {
                     const src = path.join(extractedFolder, file);
                     const dest = path.join(targetDir, file);
                     
-                    // 跳过一些文件
-                    if (['node_modules', '.next', '.env.local', 'launcher-config.json'].includes(file)) {
+                    // Skip some files (avoid overwriting user data and config)
+                    const skipFiles = [
+                      'node_modules', 
+                      '.next', 
+                      '.env.local', 
+                      'launcher-config.json',
+                      'data' // Skip entire data folder to protect user data
+                    ];
+                    
+                    if (skipFiles.includes(file)) {
                       return;
                     }
                     
-                    // 删除旧文件/文件夹
+                    // Delete old files/folders
                     if (fs.existsSync(dest)) {
                       fs.rmSync(dest, { recursive: true, force: true });
                     }
                     
-                    // 移动新文件
+                    // Move new file
                     fs.renameSync(src, dest);
                   });
                   
-                  // 删除临时文件夹
+                  // Delete temporary folder
                   fs.rmSync(extractedFolder, { recursive: true, force: true });
                 }
                 
-                console.log('✅ 更新完成！');
+                console.log('✅ Update complete!');
                 resolve();
               })
               .on('error', reject);
@@ -127,144 +137,151 @@ async function downloadLatestCode(owner, repo, targetDir) {
   });
 }
 
-// 检查并更新
+// Check and update
 async function checkAndUpdate() {
   try {
     const config = await loadConfig();
     
     if (!config.githubOwner || !config.githubRepo) {
-      console.log('⚠️  未配置 GitHub repo，跳过更新检查');
+      console.log('⚠️  GitHub repo not configured, skipping update check');
       return false;
     }
 
-    console.log('🔍 检查更新中...');
+    console.log('🔍 Checking for updates...');
     
     const latestSha = await getLatestCommitSha(config.githubOwner, config.githubRepo);
     
     if (!config.currentCommitSha || config.currentCommitSha !== latestSha) {
-      console.log('🎉 发现新版本！');
+      console.log('🎉 New version found!');
       await downloadLatestCode(config.githubOwner, config.githubRepo, PROJECT_DIR);
       
-      // 更新配置
+      // Update configuration
       config.currentCommitSha = latestSha;
       config.lastUpdateTime = new Date().toISOString();
       await saveConfig(config);
       
-      console.log('✅ 已更新到最新版本');
+      console.log('✅ Updated to latest version');
       return true;
     } else {
-      console.log('✅ 已是最新版本');
+      console.log('✅ Already on latest version');
       return false;
     }
   } catch (error) {
-    console.error('⚠️  更新检查失败:', error.message);
-    console.log('继续使用当前版本...');
+    console.error('⚠️  Update check failed:', error.message);
+    console.log('Continuing with current version...');
     return false;
   }
 }
 
-// 检查并安装依赖
+// Check and install dependencies
 async function checkDependencies() {
   const nodeModulesPath = path.join(PROJECT_DIR, 'node_modules');
   
   if (!fs.existsSync(nodeModulesPath)) {
-    console.log('📦 首次运行，正在安装依赖（这可能需要几分钟）...');
+    console.log('📦 First run, installing dependencies (this may take a few minutes)...');
+    console.log('⚠️  Please manually run: npm install');
+    console.log('Then restart the program.\n');
     
-    return new Promise((resolve, reject) => {
-      const npm = spawn('npm', ['install'], {
-        cwd: PROJECT_DIR,
-        shell: true,
-        stdio: 'inherit'
-      });
-
-      npm.on('close', (code) => {
-        if (code === 0) {
-          console.log('✅ 依赖安装完成');
-          resolve();
-        } else {
-          reject(new Error('依赖安装失败'));
-        }
-      });
-    });
+    console.log('Press any key to exit...');
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    await new Promise(resolve => process.stdin.once('data', resolve));
+    process.exit(0);
   }
 }
 
-// 启动 Next.js 服务器
+// Start Next.js server (using node command directly)
 async function startServer(mode = 'production') {
-  console.log(`\n🚀 启动服务器 (${mode} 模式)...\n`);
+  console.log(`\n🚀 Starting server (${mode} mode)...\n`);
   
-  const command = mode === 'production' ? 'npm' : 'npm';
-  const args = mode === 'production' ? ['run', 'build-and-start'] : ['run', 'dev'];
+  // Check if .next build directory exists
+  const buildDir = path.join(PROJECT_DIR, '.next');
   
-  // 如果是生产模式，先检查是否需要构建
-  if (mode === 'production') {
-    const buildDir = path.join(PROJECT_DIR, '.next');
-    if (!fs.existsSync(buildDir)) {
-      console.log('📦 首次运行，正在构建项目...');
-      await new Promise((resolve, reject) => {
-        const build = spawn('npm', ['run', 'build'], {
-          cwd: PROJECT_DIR,
-          shell: true,
-          stdio: 'inherit'
-        });
-        build.on('close', (code) => code === 0 ? resolve() : reject());
-      });
-    }
+  if (mode === 'production' && !fs.existsSync(buildDir)) {
+    console.log('📦 First run in production mode, need to build the project first.');
+    console.log('⚠️  Please manually run: npm run build');
+    console.log('Then restart the program.\n');
+    
+    console.log('Or modify launcher-config.json mode to "dev" to use development mode.\n');
+    console.log('Press any key to exit...');
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    await new Promise(resolve => process.stdin.once('data', resolve));
+    process.exit(0);
   }
   
-  const server = spawn(command, args, {
+  // 使用 node 直接启动 Next.js
+  const nextBin = path.join(PROJECT_DIR, 'node_modules', '.bin', 'next.cmd');
+  const nextJs = path.join(PROJECT_DIR, 'node_modules', 'next', 'dist', 'bin', 'next');
+  
+  const args = mode === 'production' ? ['start'] : ['dev'];
+  
+  // Prefer using node to run next directly
+  const server = spawn('node', [nextJs, ...args], {
     cwd: PROJECT_DIR,
-    shell: true,
-    stdio: 'inherit'
+    stdio: 'inherit',
+    windowsHide: false,
+    env: { ...process.env, PORT: '3000' }
   });
 
   server.on('error', (error) => {
-    console.error('❌ 服务器启动失败:', error);
-    process.exit(1);
+    console.error('❌ Server failed to start:', error.message);
+    console.log('\nPlease make sure you have run npm install to install dependencies.');
+    console.log('Press any key to exit...');
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.once('data', () => process.exit(1));
   });
 
-  // 等待服务器启动
-  await new Promise(resolve => setTimeout(resolve, 3000));
+  // Wait for server to start
+  console.log('Waiting for server to start...');
+  await new Promise(resolve => setTimeout(resolve, 5000));
   
-  // 自动打开浏览器
+  // Auto-open browser
   const url = 'http://localhost:3000';
-  console.log(`\n✅ 服务器已启动: ${url}`);
-  console.log('正在打开浏览器...\n');
+  console.log(`\n✅ Server started: ${url}`);
+  console.log('Opening browser...\n');
   
-  const open = require('open');
-  await open(url);
+  try {
+    const open = require('open');
+    await open(url);
+  } catch (error) {
+    console.log('⚠️  Cannot auto-open browser, please visit manually:', url);
+  }
+  
+  console.log('\nPress Ctrl+C to stop server\n');
 }
 
-// 主函数
+// Main function
 async function main() {
   console.log('===========================================');
   console.log('🎬 Movie Dashboard Launcher');
   console.log('===========================================\n');
 
   try {
-    // 1. 检查更新
+    // 1. Check for updates
     const wasUpdated = await checkAndUpdate();
     
-    // 2. 如果有更新，检查依赖
+    // 2. If updated, check dependencies
     if (wasUpdated) {
       await checkDependencies();
     } else {
-      // 即使没更新，也检查依赖是否存在
+      // Even if not updated, check if dependencies exist
       await checkDependencies();
     }
     
-    // 3. 启动服务器
+    // 3. Start server
     const config = await loadConfig();
     await startServer(config.mode || 'production');
     
   } catch (error) {
-    console.error('❌ 启动失败:', error.message);
-    console.log('\n按任意键退出...');
+    console.error('❌ Startup failed:', error.message);
+    console.log('\nPress any key to exit...');
     process.stdin.setRawMode(true);
     process.stdin.resume();
     process.stdin.on('data', process.exit.bind(process, 0));
   }
 }
 
-// 运行
+// Run
 main();

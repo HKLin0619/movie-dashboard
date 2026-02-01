@@ -1,25 +1,25 @@
-# Movie Dashboard - 桌面应用版
+# Movie Dashboard - Desktop Application
 
-## 📦 已创建的文件
+## 📦 Created Files
 
-- ✅ `launcher.js` - 启动器脚本（自动更新 + 启动服务器）
-- ✅ `launcher-config.json` - 配置文件
-- ✅ `.gitignore` - 已更新（排除 exe 和配置文件）
-- ✅ `package.json` - 已添加打包依赖
+- ✅ `launcher.js` - Launcher script (auto-update + server start)
+- ✅ `launcher-config.json` - Configuration file
+- ✅ `.gitignore` - Updated (excludes exe and config files)
+- ✅ `package.json` - Added packaging dependencies
 
 ---
 
-## 🚀 使用流程
+## 🚀 Usage Flow
 
-### 第一步：上传到 GitHub
+### Step 1: Upload to GitHub
 
-1. **创建 GitHub Public Repo**
-   - 去 https://github.com/new
-   - 命名为 `movie-dashboard`
-   - 选择 **Public**
-   - 不要勾选 "Add README" 或 ".gitignore"（我们已经有了）
+1. **Create GitHub Public Repo**
+   - Go to https://github.com/new
+   - Name it `movie-dashboard`
+   - Select **Public**
+   - Do not check "Add README" or ".gitignore" (we already have them)
 
-2. **推送代码**
+2. **Push Code**
    ```bash
    git init
    git add .
@@ -29,11 +29,11 @@
    git push -u origin main
    ```
 
-3. **更新配置文件**
-   编辑 `launcher-config.json`，把 `YOUR_GITHUB_USERNAME` 改成你的 GitHub 用户名：
+3. **Update Config File**
+   Edit `launcher-config.json`, change `YOUR_GITHUB_USERNAME` to your GitHub username:
    ```json
    {
-     "githubOwner": "你的GitHub用户名",
+     "githubOwner": "YourGitHubUsername",
      "githubRepo": "movie-dashboard",
      ...
    }
@@ -41,111 +41,119 @@
 
 ---
 
-### 第二步：安装依赖并打包
+### Step 2: Install Dependencies and Package
 
 ```bash
-# 安装新的依赖
+# Install new dependencies
 npm install
 
-# 测试启动器（确保能正常运行）
+# Test launcher (ensure it runs properly)
 node launcher.js
 
-# 打包成 exe
+# Package as exe
 npm run package-exe
 ```
 
-打包完成后会生成 `movie-dashboard.exe` 文件。
+After packaging, `movie-dashboard.exe` will be generated.
 
 ---
 
-### 第三步：分发使用
+### Step 3: Distribution and Usage
 
-**给用户的文件结构：**
+**File structure for users:**
 ```
 movie-dashboard/
-  ├── movie-dashboard.exe    (启动器)
-  ├── launcher-config.json   (配置文件，需要更新你的GitHub用户名)
-  ├── .env.local            (如果有API keys)
-  └── 其他项目文件...
+  ├── movie-dashboard.exe    (Launcher)
+  ├── launcher-config.json   (Config file, needs your GitHub username)
+  ├── .env.local            (If you have API keys)
+  └── Other project files...
 ```
 
-**用户使用：**
-1. 双击 `movie-dashboard.exe`
-2. 首次运行会自动下载最新代码并安装依赖
-3. 自动打开浏览器显示网站
+**User usage:**
+1. Double-click `movie-dashboard.exe`
+2. First run will automatically download latest code and install dependencies
+3. Browser opens automatically with the website
 
 ---
 
-## 🔄 更新流程
+## 🔄 Update Flow
 
-**你（开发者）：**
-1. 修改代码
-2. `git push` 到 GitHub
-3. 完成！✅
+**You (developer):**
+1. Modify code
+2. `git push` to GitHub
+3. Done! ✅
 
-**用户：**
-1. 双击 exe
-2. 自动检测并下载更新
-3. 完成！✅
+**User:**
+1. Double-click start.bat (or exe)
+2. Automatically detects and downloads updates
+3. Done! ✅
+
+**⚠️ Important: User Data Protection**
+- ✅ `data/animeStore.json` - User collection data **will never be overwritten**
+- ✅ `.env.local` - API keys **will never be overwritten**
+- ✅ `launcher-config.json` - Configuration **will never be overwritten**
+- ✅ `node_modules/` - Dependencies **will never be overwritten**
+
+Only code files (components, app, etc.) will be updated.
 
 ---
 
-## ⚙️ 配置说明
+## ⚙️ Configuration
 
 ### launcher-config.json
 
 ```json
 {
-  "githubOwner": "你的GitHub用户名",  // 必须修改
-  "githubRepo": "movie-dashboard",    // repo 名称
-  "mode": "production",               // production 或 dev
-  "autoUpdate": true                  // 是否自动更新
+  "githubOwner": "YourGitHubUsername",  // Must be modified
+  "githubRepo": "movie-dashboard",      // Repo name
+  "mode": "production",                 // production or dev
+  "autoUpdate": true                    // Whether to auto-update
 }
 ```
 
 ---
 
-## 🔒 安全提示
+## 🔒 Security Tips
 
-### ✅ 已保护（不会上传到 GitHub）：
+### ✅ Protected (won't be uploaded to GitHub):
 - `.env.local` - API keys
-- `launcher-config.json` - 配置文件（每个用户可能不同）
-- `*.exe` - 打包的可执行文件
-- `node_modules/` - 依赖包
-- `.next/` - 构建文件
+- `launcher-config.json` - Config file (may differ per user)
+- `*.exe` - Packaged executable
+- `node_modules/` - Dependencies
+- `.next/` - Build files
 
-### ⚠️ API Keys 管理：
-创建 `.env.local` 文件存储敏感信息：
+### ⚠️ API Keys Management:
+Create `.env.local` file to store sensitive information:
 ```
-API_KEY=你的密钥
-ANOTHER_KEY=另一个密钥
+API_KEY=your_secret_key
+ANOTHER_KEY=another_secret
 ```
 
-分发给用户时，需要单独提供 `.env.local` 文件（或让他们自己配置）。
+When distributing to users, provide `.env.local` separately (or let them configure it).
 
 ---
 
-## 🐛 常见问题
+## 🐛 Common Issues
 
-### 更新失败怎么办？
-启动器会自动回退到当前版本，不影响使用。
+### Update Failed?
+The launcher will automatically fallback to current version without affecting usage.
 
-### 如何禁用自动更新？
-修改 `launcher-config.json`：
+### How to Disable Auto-Update?
+Modify `launcher-config.json`:
 ```json
 {
   "autoUpdate": false
 }
 ```
 
-### 如何手动更新？
-删除配置文件里的 `currentCommitSha`，下次启动会重新下载。
+### How to Manually Update?
+Delete `currentCommitSha` from config file, next startup will re-download.
 
 ---
 
-## 📝 开发模式
+## 📝 Development Mode
 
-如果想在开发模式运行（支持热重载）：
+If you want to run in development mode (supports hot reload):
 ```json
 {
   "mode": "dev"
@@ -154,4 +162,4 @@ ANOTHER_KEY=另一个密钥
 
 ---
 
-需要帮助？检查 GitHub Issues 或联系开发者。
+Need help? Check GitHub Issues or contact the developer.

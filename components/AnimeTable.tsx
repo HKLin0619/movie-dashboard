@@ -34,6 +34,13 @@ interface AnimeTableProps {
 type Order = 'asc' | 'desc';
 type OrderBy = keyof Anime | 'no';
 
+const getSeasonColor = (season: string): 'success' | 'warning' | 'error' | 'info' => {
+  if (season === '春' || season === 'Spring') return 'success';
+  if (season === '夏' || season === 'Summer') return 'warning';
+  if (season === '秋' || season === 'Fall' || season === 'Autumn') return 'error';
+  return 'info';
+};
+
 export default function AnimeTable({ data }: AnimeTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [order, setOrder] = useState<Order>('asc');
@@ -82,10 +89,8 @@ export default function AnimeTable({ data }: AnimeTableProps) {
     
     // Backend update
     try {
-      const result = await toggleFavorite(animeId);
-      console.log('Toggle favorite result:', result, 'for anime ID:', animeId);
+      await toggleFavorite(animeId);
     } catch (error) {
-      console.error('Failed to toggle favorite:', error);
       // Rollback on failure
       setLocalData(previousData);
       alert('Failed to toggle favorite, please try again');
@@ -308,12 +313,7 @@ export default function AnimeTable({ data }: AnimeTableProps) {
                     <Chip
                       label={anime.season}
                       size="small"
-                      color={
-                        anime.season === '春' ? 'success' :
-                        anime.season === '夏' ? 'warning' :
-                        anime.season === '秋' ? 'error' :
-                        'info'
-                      }
+                      color={getSeasonColor(anime.season)}
                     />
                   </TableCell>
                   <TableCell>{anime.subtitleGroup}</TableCell>

@@ -36,3 +36,6 @@ next-env.d.ts
 launcher-config.json
 *.exe
 temp-update.zip
+
+# user data - 用户的个人数据，不上传
+/data/animeStore.json

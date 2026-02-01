@@ -29,7 +29,8 @@ function generateAnimeUrl(title: string, year: string, season: string): string {
     .trim()
     .replace(/\s+/g, '-'); // Replace spaces with hyphens
   
-  return `https://anime1.me/category/${year}年${seasonPart}季/${processedTitle}`;
+  const baseUrl = process.env.ANIME_CATEGORY_BASE_URL || 'https://anime1.me/category';
+  return `${baseUrl}/${year}年${seasonPart}季/${processedTitle}`;
 }
 
 export async function getAnimeData(): Promise<Anime[]> {
@@ -38,7 +39,8 @@ export async function getAnimeData(): Promise<Anime[]> {
     const store = await readStore();
     
     // 2. Fetch fresh data from API
-    const response = await fetch('https://anime1.me/animelist.json', {
+    const apiUrl = process.env.NEXT_PUBLIC_ANIME_API_URL || 'https://anime1.me/animelist.json';
+    const response = await fetch(apiUrl, {
       next: { revalidate: 3600 } // Revalidate every hour
     });
     
@@ -92,19 +94,14 @@ export async function getAnimeData(): Promise<Anime[]> {
 
 // Toggle favorite status
 export async function toggleFavorite(animeId: number): Promise<boolean> {
-  console.log('toggleFavorite called with ID:', animeId);
   const store = await readStore();
-  console.log('Store loaded, total anime:', store.animeList.length);
   
   const anime = store.animeList.find(a => a.id === animeId);
   if (!anime) {
-    console.error('Anime not found with ID:', animeId);
     return false;
   }
   
-  console.log('Before toggle - isFavorite:', anime.isFavorite);
   anime.isFavorite = !anime.isFavorite;
-  console.log('After toggle - isFavorite:', anime.isFavorite);
   
   if (anime.isFavorite) {
     anime.addedDate = new Date().toISOString();
@@ -113,6 +110,5 @@ export async function toggleFavorite(animeId: number): Promise<boolean> {
   }
   
   await writeStore(store);
-  console.log('Store saved successfully');
   return anime.isFavorite;
 }
