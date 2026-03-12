@@ -76,11 +76,9 @@ export async function getAnimeData(): Promise<Anime[]> {
 export async function refreshAnimeData(): Promise<{ success: boolean; count: number; error?: string }> {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_ANIME_API_URL || 'https://anime1.me/animelist.json';
-    const response = await fetch(apiUrl, { cache: 'no-store' });
 
-    if (!response.ok) {
-      throw new Error(`API returned status ${response.status}`);
-    }
+    const response = await fetch(apiUrl, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`API returned status ${response.status}`);
 
     const data: [number, string, string, string, string, string][] = await response.json();
 
