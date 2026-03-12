@@ -23,7 +23,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
-.env*.local
+.env
 
 # vercel
 .vercel
@@ -32,10 +32,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# launcher files
-launcher-config.json
-*.exe
-temp-update.zip
-
-# user data - 用户的个人数据，不上传
-/data/animeStore.json
+# user data - not committed
+/data/anime1/store.json
+/data/anime1/favorites.json

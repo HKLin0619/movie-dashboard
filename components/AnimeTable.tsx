@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useTransition } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -15,14 +15,13 @@ import {
   TableSortLabel,
   TablePagination,
   Chip,
-  Link,
   IconButton,
   Tooltip,
   FormControlLabel,
   Checkbox,
 } from '@mui/material';
 import { Favorite, FavoriteBorder, OpenInNew } from '@mui/icons-material';
-import { Anime } from '@/app/data/animeData';
+import { Anime } from '@/types/anime1';
 import { toggleFavorite } from '@/serveraction';
 // @ts-ignore - opencc-js has no type definitions
 import * as OpenCC from 'opencc-js';
@@ -48,7 +47,6 @@ export default function AnimeTable({ data }: AnimeTableProps) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [localData, setLocalData] = useState(data);
-  const [isPending, startTransition] = useTransition();
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   

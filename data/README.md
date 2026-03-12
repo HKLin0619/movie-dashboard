@@ -1,67 +1,35 @@
-# Data Folder Description
+# Data Folder
 
-## 📁 File Description
+## Structure
 
-### `animeStore.json` - Your Personal Data 🔒
-- This is **your local database**
-- Stores your collection, favorites, watch status, etc.
-- ✅ **Won't be overwritten during auto-update**
-- ✅ **Won't be uploaded to GitHub** (added to .gitignore)
-- You can freely modify, add, or delete data
-
-### `animeStore.example.json` - Example Template
-- This is **data structure template**
-- Will be uploaded to GitHub for new users' reference
-- Will be updated during auto-update (but doesn't affect your data)
-
----
-
-## 🔄 Auto-Update Mechanism
-
-When you start `start.bat`:
-
-1. ✅ Check if there's a new version on GitHub
-2. ✅ If yes, download latest code
-3. ✅ Update code files (components, app, etc.)
-4. ❌ **Skip data folder** - Protect your data
-5. ✅ Start server
-
----
-
-## 💾 Data Safety
-
-### Data that will never be lost:
-- ✅ `animeStore.json` - Your collection and favorites
-- ✅ `.env.local` - Your API keys
-- ✅ `launcher-config.json` - Your configuration
-
-### Files that will be updated:
-- Code files (components, app, etc.)
-- package.json
-- Other config files
-
----
-
-## 🔧 First Time Use
-
-If you're a new user and don't have a data file:
-
-```bash
-# Copy example file as starting point
-copy animeStore.example.json animeStore.json
+```
+data/
+  anime1/
+    store.json       ← API data (anime list, overwritten on every Refresh)
+    favorites.json   ← Your favorites (id + addedDate only, never overwritten)
 ```
 
-Or just run the program, it will automatically create an empty data file.
+## How it works
 
----
+- **`store.json`** is replaced entirely every time you click the Refresh button on the dashboard. It contains the full anime list from the anime1.me API.
+- **`favorites.json`** is only written when you click the heart icon on an anime. It stores only the `id` and `addedDate` of your favorites.
+- When displaying the anime list, both files are read and merged in real time.
 
-## 📊 Data Backup Recommendations
+## Adding a new category in the future
 
-Although data won't be overwritten by auto-updates, regular backups are recommended:
+Create a new subfolder following the same pattern:
 
-```bash
-# Manual backup
-copy animeStore.json animeStore.backup.json
+```
+data/
+  movies/
+    store.json
+    favorites.json
 ```
 
-Or use Git to manage your personal data branch.
+## Backup recommendation
+
+Only `favorites.json` contains your personal data. Back it up if needed:
+
+```bash
+copy data\anime1\favorites.json data\anime1\favorites.backup.json
+```

@@ -14,3 +14,12 @@ export interface AnimeStore {
   lastUpdated: string | null;
   animeList: Anime[];
 }
+
+export interface FavoriteEntry {
+  id: number;
+  addedDate: string;
+}
+
+export interface FavoritesStore {
+  favorites: FavoriteEntry[];
+}

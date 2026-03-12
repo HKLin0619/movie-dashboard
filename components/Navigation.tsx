@@ -1,7 +1,7 @@
 'use client';
 
 import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Box, Typography, Divider } from '@mui/material';
-import { Dashboard, Home } from '@mui/icons-material';
+import { Dashboard } from '@mui/icons-material';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
