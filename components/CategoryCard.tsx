@@ -77,11 +77,20 @@ export default function CategoryCard({
         }}
       >
         <CardContent sx={{ p: 2.5 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'stretch', sm: 'center' },
+              gap: { xs: 2, sm: 2.5 },
+            }}
+          >
             <Box
               sx={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 2.5,
+                gap: 2,
+                width: '100%',
               }}
             >
               <Box
@@ -107,12 +116,14 @@ export default function CategoryCard({
                   IconComponent && <IconComponent sx={{ fontSize: 32 }} />
                 )}
               </Box>
-              <Box sx={{ flexGrow: 1 }}>
+              <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                 <Typography
                   variant="h5"
                   sx={{
                     fontWeight: 600,
                     color: 'var(--color-text)',
+                    fontSize: { xs: '1.15rem', sm: '1.5rem' },
+                    wordBreak: 'break-word',
                   }}
                 >
                   {title}
@@ -128,8 +139,42 @@ export default function CategoryCard({
                   Last updated: {formattedDate}
                 </Typography>
               </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, flexShrink: 0 }}>
-                <Box sx={{ textAlign: 'center', minWidth: 60 }}>
+              {onRefresh && (
+                <Tooltip title="Fetch latest data from API">
+                  <span>
+                    <IconButton
+                      onClick={handleRefresh}
+                      disabled={loading}
+                      sx={{
+                        color: 'var(--color-primary)',
+                        transition: 'all 200ms ease-in-out',
+                        ml: 'auto',
+                        '&:hover': {
+                          color: 'var(--color-secondary)',
+                          transform: 'rotate(30deg)',
+                        },
+                      }}
+                    >
+                      {loading
+                        ? <CircularProgress size={22} sx={{ color: 'var(--color-primary)' }} />
+                        : <Refresh />
+                      }
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              )}
+            </Box>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', sm: 'repeat(2, auto)' },
+                gap: { xs: 1.5, sm: 2.5 },
+                alignItems: 'center',
+                width: { xs: '100%', sm: 'auto' },
+                flexShrink: 0,
+              }}
+            >
+              <Box sx={{ textAlign: 'center', minWidth: { sm: 60 } }}>
                   <Typography
                     variant="h3"
                     sx={{
@@ -138,6 +183,7 @@ export default function CategoryCard({
                       fontFamily: 'var(--font-code)',
                       lineHeight: 1,
                       mb: 0.5,
+                      fontSize: { xs: '2rem', sm: '3rem' },
                     }}
                   >
                     {count}
@@ -154,7 +200,7 @@ export default function CategoryCard({
                     Total
                   </Typography>
                 </Box>
-                <Box sx={{ textAlign: 'center', minWidth: 60 }}>
+              <Box sx={{ textAlign: 'center', minWidth: { sm: 60 } }}>
                   <Typography
                     variant="h3"
                     sx={{
@@ -163,6 +209,7 @@ export default function CategoryCard({
                       fontFamily: 'var(--font-code)',
                       lineHeight: 1,
                       mb: 0.5,
+                      fontSize: { xs: '2rem', sm: '3rem' },
                     }}
                   >
                     {favorites}
@@ -179,32 +226,9 @@ export default function CategoryCard({
                     Favorites
                   </Typography>
                 </Box>
-                {onRefresh && (
-                  <Tooltip title="Fetch latest data from API">
-                    <span>
-                      <IconButton
-                        onClick={handleRefresh}
-                        disabled={loading}
-                        sx={{
-                          color: 'var(--color-primary)',
-                          transition: 'all 200ms ease-in-out',
-                          '&:hover': {
-                            color: 'var(--color-secondary)',
-                            transform: 'rotate(30deg)',
-                          },
-                        }}
-                      >
-                        {loading
-                          ? <CircularProgress size={22} sx={{ color: 'var(--color-primary)' }} />
-                          : <Refresh />
-                        }
-                      </IconButton>
-                    </span>
-                  </Tooltip>
-                )}
-              </Box>
             </Box>
-          </CardContent>
+          </Box>
+        </CardContent>
       </Card>
 
       <Snackbar

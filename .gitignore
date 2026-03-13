@@ -38,3 +38,5 @@ next-env.d.ts
 
 # machine-specific PM2 config
 ecosystem.config.js
+
+.github
