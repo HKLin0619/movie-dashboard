@@ -7,17 +7,27 @@ import EmotionRegistry from '@/components/EmotionRegistry';
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
     <EmotionRegistry>
-      <Sidebar />
       <Box
-        component="main"
         sx={{
-          flexGrow: 1,
-          bgcolor: 'var(--color-background)',
+          display: 'flex',
           minHeight: '100vh',
-          width: 'calc(100% - 260px)',
+          width: '100%',
+          bgcolor: 'var(--color-background)',
         }}
       >
-        {children}
+        <Sidebar />
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            bgcolor: 'var(--color-background)',
+            minHeight: '100vh',
+            width: { xs: '100%', md: 'calc(100% - 260px)' },
+            pt: { xs: 8, sm: 9, md: 0 },
+          }}
+        >
+          {children}
+        </Box>
       </Box>
     </EmotionRegistry>
   );

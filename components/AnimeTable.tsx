@@ -158,7 +158,15 @@ export default function AnimeTable({ data }: AnimeTableProps) {
 
   return (
     <Box sx={{ width: '100%' }}>
-      <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+      <Box
+        sx={{
+          mb: 3,
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: 2,
+          alignItems: { xs: 'stretch', sm: 'flex-start' },
+        }}
+      >
         <TextField
           fullWidth
           label="Search Anime"
@@ -199,23 +207,24 @@ export default function AnimeTable({ data }: AnimeTableProps) {
               <Typography variant="body2">Favorites Only</Typography>
             </Box>
           }
-          sx={{ mt: 1 }}
+          sx={{ mt: { xs: 0, sm: 1 }, ml: 0, alignSelf: { xs: 'flex-start', sm: 'center' } }}
         />
       </Box>
 
-      <TableContainer 
-        component={Paper} 
+      <TableContainer
+        component={Paper}
         elevation={2}
         sx={{
           borderRadius: 2,
-          overflow: 'hidden',
+          overflowX: 'auto',
+          overflowY: 'hidden',
           '&:hover': {
             boxShadow: 4,
           },
           transition: 'box-shadow 200ms ease-in-out',
         }}
       >
-        <Table sx={{ minWidth: 650 }} aria-label="anime table">
+        <Table sx={{ minWidth: { xs: 920, md: 650 } }} aria-label="anime table">
           <TableHead>
             <TableRow sx={{ bgcolor: 'var(--color-primary)' }}>
               <TableCell sx={{ color: 'white', fontWeight: 600, width: 80 }}>
@@ -398,7 +407,23 @@ export default function AnimeTable({ data }: AnimeTableProps) {
         onRowsPerPageChange={handleChangeRowsPerPage}
         labelRowsPerPage="Rows per page:"
         labelDisplayedRows={({ from, to, count }) => `${from}-${to} of ${count}`}
-        sx={{ borderTop: 1, borderColor: 'divider' }}
+        sx={{
+          borderTop: 1,
+          borderColor: 'divider',
+          overflowX: 'auto',
+          '.MuiTablePagination-toolbar': {
+            px: { xs: 1, sm: 2 },
+            minHeight: { xs: 72, sm: 52 },
+            flexWrap: 'wrap',
+            rowGap: 1,
+          },
+          '.MuiTablePagination-spacer': {
+            display: { xs: 'none', sm: 'block' },
+          },
+          '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
+            m: 0,
+          },
+        }}
       />
     </Box>
   );
