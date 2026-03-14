@@ -2,6 +2,8 @@ import AnimeTable from '@/components/AnimeTable';
 import { getAnimeData } from '@/serveraction';
 import { Container } from '@mui/material';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AnimePage() {
   const animeData = await getAnimeData();
   

@@ -2,6 +2,8 @@ import { Box, Container, Typography } from '@mui/material';
 import { getHomepageStats, refreshAnimeData } from '@/serveraction';
 import CategoryCard from '@/components/CategoryCard';
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   const { lastUpdated, totalCount, favoriteCount } = await getHomepageStats();
 

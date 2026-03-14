@@ -3,6 +3,7 @@
 import { Anime, AnimeStore, FavoritesStore } from '@/types/anime1';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { revalidatePath } from 'next/cache';
 
 const STORE_PATH = path.join(process.cwd(), 'data', 'anime1', 'store.json');
 const FAVORITES_PATH = path.join(process.cwd(), 'data', 'anime1', 'favorites.json');
@@ -97,6 +98,10 @@ export async function refreshAnimeData(): Promise<{ success: boolean; count: num
       animeList,
     });
 
+    // Refresh pages that depend on local JSON files.
+    revalidatePath('/');
+    revalidatePath('/anime');
+
     return { success: true, count: animeList.length };
   } catch (error) {
     console.error('Error refreshing anime data:', error);
@@ -117,6 +122,11 @@ export async function toggleFavorite(animeId: number): Promise<boolean> {
   }
 
   await writeFavorites(favStore);
+
+  // Ensure refreshed navigation reads latest favorites from disk.
+  revalidatePath('/');
+  revalidatePath('/anime');
+
   return isNowFavorite;
 }
 
