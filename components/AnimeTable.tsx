@@ -20,9 +20,9 @@ import {
   FormControlLabel,
   Checkbox,
 } from '@mui/material';
-import { Favorite, FavoriteBorder, OpenInNew } from '@mui/icons-material';
+import { CheckCircle, CheckCircleOutline, Favorite, FavoriteBorder, OpenInNew } from '@mui/icons-material';
 import { Anime } from '@/types/anime1';
-import { toggleFavorite } from '@/serveraction';
+import { toggleFavorite, toggleWatched } from '@/serveraction';
 // @ts-ignore - opencc-js has no type definitions
 import * as OpenCC from 'opencc-js';
 
@@ -49,6 +49,7 @@ export default function AnimeTable({ data }: AnimeTableProps) {
   const [localData, setLocalData] = useState(data);
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [showWatchedOnly, setShowWatchedOnly] = useState(false);
   
   // Simplified to Traditional Chinese converter
   const converter = useMemo(() => {
@@ -97,6 +98,31 @@ export default function AnimeTable({ data }: AnimeTableProps) {
     }
   };
 
+  const handleWatchedToggle = async (animeId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    setLoadingId(animeId);
+
+    // Optimistic UI update
+    const previousData = localData;
+    setLocalData(localData.map(anime =>
+      anime.id === animeId
+        ? { ...anime, isWatched: !anime.isWatched }
+        : anime
+    ));
+
+    // Backend update
+    try {
+      await toggleWatched(animeId);
+    } catch (error) {
+      // Rollback on failure
+      setLocalData(previousData);
+      alert('Failed to toggle watched status, please try again');
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
@@ -123,6 +149,11 @@ export default function AnimeTable({ data }: AnimeTableProps) {
       filtered = filtered.filter(anime => anime.isFavorite);
     }
 
+    // Filter by watched if enabled
+    if (showWatchedOnly) {
+      filtered = filtered.filter(anime => anime.isWatched);
+    }
+
     filtered.sort((a, b) => {
       let aValue: string | number;
       let bValue: string | number;
@@ -147,7 +178,7 @@ export default function AnimeTable({ data }: AnimeTableProps) {
     });
 
     return filtered;
-  }, [localData, searchTerm, order, orderBy, converter, showFavoritesOnly]);
+  }, [localData, searchTerm, order, orderBy, converter, showFavoritesOnly, showWatchedOnly]);
 
   const paginatedData = useMemo(() => {
     return filteredAndSortedData.slice(
@@ -205,6 +236,30 @@ export default function AnimeTable({ data }: AnimeTableProps) {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, whiteSpace: 'nowrap' }}>
               <Favorite sx={{ fontSize: 18, color: '#e91e63' }} />
               <Typography variant="body2">Favorites Only</Typography>
+            </Box>
+          }
+          sx={{ mt: { xs: 0, sm: 1 }, ml: 0, alignSelf: { xs: 'flex-start', sm: 'center' } }}
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={showWatchedOnly}
+              onChange={(e) => {
+                setShowWatchedOnly(e.target.checked);
+                setPage(0);
+              }}
+              sx={{
+                color: '#2e7d32',
+                '&.Mui-checked': {
+                  color: '#2e7d32',
+                },
+              }}
+            />
+          }
+          label={
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, whiteSpace: 'nowrap' }}>
+              <CheckCircle sx={{ fontSize: 18, color: '#2e7d32' }} />
+              <Typography variant="body2">Watched Only</Typography>
             </Box>
           }
           sx={{ mt: { xs: 0, sm: 1 }, ml: 0, alignSelf: { xs: 'flex-start', sm: 'center' } }}
@@ -286,7 +341,7 @@ export default function AnimeTable({ data }: AnimeTableProps) {
               </TableCell>
               <TableCell sx={{ color: 'white', fontWeight: 600, width: 150 }}>Subtitle Group</TableCell>
               <TableCell sx={{ color: 'white', fontWeight: 600, width: 100 }}>ID</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 600, width: 120 }} align="center">
+              <TableCell sx={{ color: 'white', fontWeight: 600, width: 170 }} align="center">
                 Action
               </TableCell>
             </TableRow>
@@ -377,6 +432,28 @@ export default function AnimeTable({ data }: AnimeTableProps) {
                           }}
                         >
                           {anime.isFavorite ? <Favorite fontSize="small" /> : <FavoriteBorder fontSize="small" />}
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title={anime.isWatched ? 'Unmark watched' : 'Mark as watched'}>
+                        <IconButton
+                          onClick={(e) => handleWatchedToggle(anime.id, e)}
+                          disabled={loadingId === anime.id}
+                          size="small"
+                          sx={{
+                            color: anime.isWatched ? '#2e7d32' : 'rgba(0,0,0,0.3)',
+                            transition: 'all 200ms ease-in-out',
+                            opacity: loadingId === anime.id ? 0.5 : 1,
+                            '&:hover': {
+                              color: '#2e7d32',
+                              transform: 'scale(1.1)',
+                            },
+                            '&.Mui-disabled': {
+                              color: anime.isWatched ? '#2e7d32' : 'rgba(0,0,0,0.3)',
+                              opacity: 0.5,
+                            }
+                          }}
+                        >
+                          {anime.isWatched ? <CheckCircle fontSize="small" /> : <CheckCircleOutline fontSize="small" />}
                         </IconButton>
                       </Tooltip>
                     </Box>

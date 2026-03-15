@@ -7,12 +7,14 @@ data/
   anime1/
     store.json       ← API data (anime list, overwritten on every Refresh)
     favorites.json   ← Your favorites (id + addedDate only, never overwritten)
+    watched.json     ← Watched marks (id + watchedDate only, never overwritten)
 ```
 
 ## How it works
 
 - **`store.json`** is replaced entirely every time you click the Refresh button on the dashboard. It contains the full anime list from the anime1.me API.
 - **`favorites.json`** is only written when you click the heart icon on an anime. It stores only the `id` and `addedDate` of your favorites.
+- **`watched.json`** is only written when you click the check icon on an anime. It stores only the `id` and `watchedDate` of items you have already watched.
 - When displaying the anime list, both files are read and merged in real time.
 
 ## Adding a new category in the future
@@ -24,6 +26,7 @@ data/
   movies/
     store.json
     favorites.json
+    watched.json
 ```
 
 ## Backup recommendation

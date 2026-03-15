@@ -35,6 +35,7 @@ next-env.d.ts
 # user data - not committed
 /data/anime1/store.json
 /data/anime1/favorites.json
+/data/anime1/watched.json
 
 # machine-specific PM2 config
 ecosystem.config.js

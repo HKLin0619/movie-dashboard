@@ -1,12 +1,13 @@
 'use server';
 
-import { Anime, AnimeStore, FavoritesStore } from '@/types/anime1';
+import { Anime, AnimeStore, FavoritesStore, WatchedStore } from '@/types/anime1';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { revalidatePath } from 'next/cache';
 
 const STORE_PATH = path.join(process.cwd(), 'data', 'anime1', 'store.json');
 const FAVORITES_PATH = path.join(process.cwd(), 'data', 'anime1', 'favorites.json');
+const WATCHED_PATH = path.join(process.cwd(), 'data', 'anime1', 'watched.json');
 
 // ─── animeStore.json (API data only) ────────────────────────────────────────
 
@@ -38,6 +39,19 @@ async function writeFavorites(store: FavoritesStore): Promise<void> {
   await fs.writeFile(FAVORITES_PATH, JSON.stringify(store, null, 2), 'utf-8');
 }
 
+async function readWatched(): Promise<WatchedStore> {
+  try {
+    const data = await fs.readFile(WATCHED_PATH, 'utf-8');
+    return JSON.parse(data);
+  } catch {
+    return { watched: [] };
+  }
+}
+
+async function writeWatched(store: WatchedStore): Promise<void> {
+  await fs.writeFile(WATCHED_PATH, JSON.stringify(store, null, 2), 'utf-8');
+}
+
 // ─── URL generator ──────────────────────────────────────────────────────────
 
 function generateAnimeUrl(title: string, year: string, season: string): string {
@@ -62,15 +76,20 @@ export async function getHomepageStats(): Promise<{ lastUpdated: string | null; 
 }
 
 export async function getAnimeData(): Promise<Anime[]> {
-  const [store, favStore] = await Promise.all([readStore(), readFavorites()]);
+  const [store, favStore, watchedStore] = await Promise.all([readStore(), readFavorites(), readWatched()]);
 
   const favoriteMap = new Map<number, string>(); // id → addedDate
   favStore.favorites.forEach(f => favoriteMap.set(f.id, f.addedDate));
+
+  const watchedMap = new Map<number, string>(); // id → watchedDate
+  watchedStore.watched.forEach(w => watchedMap.set(w.id, w.watchedDate));
 
   return store.animeList.map(anime => ({
     ...anime,
     isFavorite: favoriteMap.has(anime.id),
     addedDate: favoriteMap.get(anime.id),
+    isWatched: watchedMap.has(anime.id),
+    watchedDate: watchedMap.get(anime.id),
   }));
 }
 
@@ -128,5 +147,26 @@ export async function toggleFavorite(animeId: number): Promise<boolean> {
   revalidatePath('/anime');
 
   return isNowFavorite;
+}
+
+export async function toggleWatched(animeId: number): Promise<boolean> {
+  const watchedStore = await readWatched();
+
+  const existingIndex = watchedStore.watched.findIndex(w => w.id === animeId);
+  const isNowWatched = existingIndex === -1;
+
+  if (isNowWatched) {
+    watchedStore.watched.push({ id: animeId, watchedDate: new Date().toISOString() });
+  } else {
+    watchedStore.watched.splice(existingIndex, 1);
+  }
+
+  await writeWatched(watchedStore);
+
+  // Ensure refreshed page reads latest watched status from disk.
+  revalidatePath('/');
+  revalidatePath('/anime');
+
+  return isNowWatched;
 }
 
