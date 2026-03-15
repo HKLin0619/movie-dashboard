@@ -8,6 +8,8 @@ export interface Anime {
   url: string;
   isFavorite?: boolean;
   addedDate?: string;
+  isWatched?: boolean;
+  watchedDate?: string;
 }
 
 export interface AnimeStore {
@@ -22,4 +24,13 @@ export interface FavoriteEntry {
 
 export interface FavoritesStore {
   favorites: FavoriteEntry[];
+}
+
+export interface WatchedEntry {
+  id: number;
+  watchedDate: string;
+}
+
+export interface WatchedStore {
+  watched: WatchedEntry[];
 }
