@@ -139,6 +139,9 @@ export default function Sidebar() {
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center' }}>
           © 2026 Movie Dashboard
         </Typography>
+        <Typography variant="caption" color="text.disabled" sx={{ display: 'block', textAlign: 'center', mt: 0.5 }}>
+          v1.0
+        </Typography>
       </Box>
     </>
   );

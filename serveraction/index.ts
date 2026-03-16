@@ -57,7 +57,8 @@ async function writeWatched(store: WatchedStore): Promise<void> {
 function generateAnimeUrl(title: string, year: string, season: string): string {
   const seasonPart = season.includes('/') ? season.split('/')[0] : season;
   const processedTitle = title
-    .replace(/[^\u4e00-\u9fa5a-zA-Z0-9\s]/g, '')
+    .toLowerCase()
+    .replace(/[^\u4e00-\u9fa5a-z0-9\s～【】!！×-]/g, '')
     .trim()
     .replace(/\s+/g, '-');
   const baseUrl = process.env.ANIME_CATEGORY_BASE_URL || 'https://anime1.me/category';

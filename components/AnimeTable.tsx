@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   Table,
   TableBody,
@@ -20,7 +20,7 @@ import {
   FormControlLabel,
   Checkbox,
 } from '@mui/material';
-import { CheckCircle, CheckCircleOutline, Favorite, FavoriteBorder, OpenInNew } from '@mui/icons-material';
+import { CheckCircle, CheckCircleOutline, ContentCopy, Favorite, FavoriteBorder, OpenInNew } from '@mui/icons-material';
 import { Anime } from '@/types/anime1';
 import { toggleFavorite, toggleWatched } from '@/serveraction';
 // @ts-ignore - opencc-js has no type definitions
@@ -48,6 +48,7 @@ export default function AnimeTable({ data }: AnimeTableProps) {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [localData, setLocalData] = useState(data);
   const [loadingId, setLoadingId] = useState<number | null>(null);
+  const [copiedId, setCopiedId] = useState<number | null>(null);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [showWatchedOnly, setShowWatchedOnly] = useState(false);
   
@@ -72,6 +73,13 @@ export default function AnimeTable({ data }: AnimeTableProps) {
     setSearchTerm(event.target.value);
     setPage(0);
   };
+
+  const handleCopyTitle = useCallback((animeId: number, title: string) => {
+    navigator.clipboard.writeText(title).then(() => {
+      setCopiedId(animeId);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  }, []);
 
   const handleFavoriteToggle = async (animeId: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -393,6 +401,22 @@ export default function AnimeTable({ data }: AnimeTableProps) {
                   </TableCell>
                   <TableCell align="center">
                     <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                      <Tooltip title={copiedId === anime.id ? 'Copied!' : 'Copy title'}>
+                        <IconButton
+                          onClick={() => handleCopyTitle(anime.id, anime.title)}
+                          size="small"
+                          sx={{
+                            color: copiedId === anime.id ? '#0288d1' : 'rgba(0,0,0,0.3)',
+                            transition: 'all 200ms ease-in-out',
+                            '&:hover': {
+                              color: '#0288d1',
+                              transform: 'scale(1.1)',
+                            },
+                          }}
+                        >
+                          <ContentCopy fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                       <Tooltip title="Visit Anime1.me">
                         <IconButton
                           href={anime.url}
