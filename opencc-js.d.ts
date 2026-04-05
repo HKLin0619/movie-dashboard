@@ -4,10 +4,5 @@ declare module 'opencc-js' {
     to: string;
   }
 
-  export interface OpenCCStatic {
-    Converter(options: ConverterOptions): (text: string) => string;
-  }
-
-  const OpenCC: OpenCCStatic;
-  export default OpenCC;
+  export function Converter(options: ConverterOptions): (text: string) => string;
 }

@@ -17,17 +17,16 @@ import {
   Chip,
   IconButton,
   Tooltip,
-  FormControlLabel,
-  Checkbox,
 } from '@mui/material';
 import { CheckCircle, CheckCircleOutline, ContentCopy, Favorite, FavoriteBorder, OpenInNew } from '@mui/icons-material';
 import { Anime } from '@/types/anime1';
 import { toggleFavorite, toggleWatched } from '@/serveraction';
-// @ts-ignore - opencc-js has no type definitions
+import { DashboardFilter } from '@/types/dashboard';
 import * as OpenCC from 'opencc-js';
 
 interface AnimeTableProps {
   data: Anime[];
+  filterMode: DashboardFilter;
 }
 
 type Order = 'asc' | 'desc';
@@ -40,7 +39,7 @@ const getSeasonColor = (season: string): 'success' | 'warning' | 'error' | 'info
   return 'info';
 };
 
-export default function AnimeTable({ data }: AnimeTableProps) {
+export default function AnimeTable({ data, filterMode }: AnimeTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [order, setOrder] = useState<Order>('asc');
   const [orderBy, setOrderBy] = useState<OrderBy>('no');
@@ -49,12 +48,9 @@ export default function AnimeTable({ data }: AnimeTableProps) {
   const [localData, setLocalData] = useState(data);
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const [showWatchedOnly, setShowWatchedOnly] = useState(false);
   
   // Simplified to Traditional Chinese converter
   const converter = useMemo(() => {
-    // @ts-ignore
     return OpenCC.Converter({ from: 'cn', to: 'tw' });
   }, []);
   
@@ -62,6 +58,10 @@ export default function AnimeTable({ data }: AnimeTableProps) {
   React.useEffect(() => {
     setLocalData(data);
   }, [data]);
+
+  React.useEffect(() => {
+    setPage(0);
+  }, [filterMode]);
 
   const handleRequestSort = (property: OrderBy) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -97,7 +97,7 @@ export default function AnimeTable({ data }: AnimeTableProps) {
     // Backend update
     try {
       await toggleFavorite(animeId);
-    } catch (error) {
+    } catch {
       // Rollback on failure
       setLocalData(previousData);
       alert('Failed to toggle favorite, please try again');
@@ -122,7 +122,7 @@ export default function AnimeTable({ data }: AnimeTableProps) {
     // Backend update
     try {
       await toggleWatched(animeId);
-    } catch (error) {
+    } catch {
       // Rollback on failure
       setLocalData(previousData);
       alert('Failed to toggle watched status, please try again');
@@ -152,14 +152,16 @@ export default function AnimeTable({ data }: AnimeTableProps) {
       anime.season.includes(searchTerm)
     );
 
-    // Filter by favorites if enabled
-    if (showFavoritesOnly) {
-      filtered = filtered.filter(anime => anime.isFavorite);
+    if (filterMode === 'favorites') {
+      filtered = filtered.filter((anime) => anime.isFavorite);
     }
 
-    // Filter by watched if enabled
-    if (showWatchedOnly) {
-      filtered = filtered.filter(anime => anime.isWatched);
+    if (filterMode === 'watched') {
+      filtered = filtered.filter((anime) => anime.isFavorite && anime.isWatched);
+    }
+
+    if (filterMode === 'unwatched') {
+      filtered = filtered.filter((anime) => anime.isFavorite && !anime.isWatched);
     }
 
     filtered.sort((a, b) => {
@@ -186,7 +188,7 @@ export default function AnimeTable({ data }: AnimeTableProps) {
     });
 
     return filtered;
-  }, [localData, searchTerm, order, orderBy, converter, showFavoritesOnly, showWatchedOnly]);
+  }, [localData, searchTerm, order, orderBy, converter, filterMode]);
 
   const paginatedData = useMemo(() => {
     return filteredAndSortedData.slice(
@@ -201,9 +203,9 @@ export default function AnimeTable({ data }: AnimeTableProps) {
         sx={{
           mb: 3,
           display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
+          flexDirection: 'column',
           gap: 2,
-          alignItems: { xs: 'stretch', sm: 'flex-start' },
+          alignItems: 'stretch',
         }}
       >
         <TextField
@@ -223,54 +225,6 @@ export default function AnimeTable({ data }: AnimeTableProps) {
               },
             },
           }}
-        />
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={showFavoritesOnly}
-              onChange={(e) => {
-                setShowFavoritesOnly(e.target.checked);
-                setPage(0);
-              }}
-              sx={{
-                color: '#e91e63',
-                '&.Mui-checked': {
-                  color: '#e91e63',
-                },
-              }}
-            />
-          }
-          label={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, whiteSpace: 'nowrap' }}>
-              <Favorite sx={{ fontSize: 18, color: '#e91e63' }} />
-              <Typography variant="body2">Favorites Only</Typography>
-            </Box>
-          }
-          sx={{ mt: { xs: 0, sm: 1 }, ml: 0, alignSelf: { xs: 'flex-start', sm: 'center' } }}
-        />
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={showWatchedOnly}
-              onChange={(e) => {
-                setShowWatchedOnly(e.target.checked);
-                setPage(0);
-              }}
-              sx={{
-                color: '#2e7d32',
-                '&.Mui-checked': {
-                  color: '#2e7d32',
-                },
-              }}
-            />
-          }
-          label={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, whiteSpace: 'nowrap' }}>
-              <CheckCircle sx={{ fontSize: 18, color: '#2e7d32' }} />
-              <Typography variant="body2">Watched Only</Typography>
-            </Box>
-          }
-          sx={{ mt: { xs: 0, sm: 1 }, ml: 0, alignSelf: { xs: 'flex-start', sm: 'center' } }}
         />
       </Box>
 
@@ -355,7 +309,7 @@ export default function AnimeTable({ data }: AnimeTableProps) {
             </TableRow>
           </TableHead>
           <TableBody>
-            {paginatedData.map((anime, index) => {
+            {paginatedData.map((anime) => {
               const actualNo = localData.indexOf(anime) + 1;
               return (
                 <TableRow
@@ -436,50 +390,54 @@ export default function AnimeTable({ data }: AnimeTableProps) {
                           <OpenInNew fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title={anime.isFavorite ? 'Remove from favorites' : 'Add to favorites'}>
-                        <IconButton
-                          onClick={(e) => handleFavoriteToggle(anime.id, e)}
-                          disabled={loadingId === anime.id}
-                          size="small"
-                          sx={{
-                            color: anime.isFavorite ? '#e91e63' : 'rgba(0,0,0,0.3)',
-                            transition: 'all 200ms ease-in-out',
-                            opacity: loadingId === anime.id ? 0.5 : 1,
-                            '&:hover': {
-                              color: '#e91e63',
-                              transform: 'scale(1.1)',
-                            },
-                            '&.Mui-disabled': {
+                      {(filterMode === 'all' || filterMode === 'favorites') && (
+                        <Tooltip title={anime.isFavorite ? 'Remove from favorites' : 'Add to favorites'}>
+                          <IconButton
+                            onClick={(e) => handleFavoriteToggle(anime.id, e)}
+                            disabled={loadingId === anime.id}
+                            size="small"
+                            sx={{
                               color: anime.isFavorite ? '#e91e63' : 'rgba(0,0,0,0.3)',
-                              opacity: 0.5,
-                            }
-                          }}
-                        >
-                          {anime.isFavorite ? <Favorite fontSize="small" /> : <FavoriteBorder fontSize="small" />}
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title={anime.isWatched ? 'Unmark watched' : 'Mark as watched'}>
-                        <IconButton
-                          onClick={(e) => handleWatchedToggle(anime.id, e)}
-                          disabled={loadingId === anime.id}
-                          size="small"
-                          sx={{
-                            color: anime.isWatched ? '#2e7d32' : 'rgba(0,0,0,0.3)',
-                            transition: 'all 200ms ease-in-out',
-                            opacity: loadingId === anime.id ? 0.5 : 1,
-                            '&:hover': {
-                              color: '#2e7d32',
-                              transform: 'scale(1.1)',
-                            },
-                            '&.Mui-disabled': {
+                              transition: 'all 200ms ease-in-out',
+                              opacity: loadingId === anime.id ? 0.5 : 1,
+                              '&:hover': {
+                                color: '#e91e63',
+                                transform: 'scale(1.1)',
+                              },
+                              '&.Mui-disabled': {
+                                color: anime.isFavorite ? '#e91e63' : 'rgba(0,0,0,0.3)',
+                                opacity: 0.5,
+                              }
+                            }}
+                          >
+                            {anime.isFavorite ? <Favorite fontSize="small" /> : <FavoriteBorder fontSize="small" />}
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {filterMode !== 'all' && filterMode !== 'watched' && (
+                        <Tooltip title={anime.isWatched ? 'Unmark watched' : 'Mark as watched'}>
+                          <IconButton
+                            onClick={(e) => handleWatchedToggle(anime.id, e)}
+                            disabled={loadingId === anime.id}
+                            size="small"
+                            sx={{
                               color: anime.isWatched ? '#2e7d32' : 'rgba(0,0,0,0.3)',
-                              opacity: 0.5,
-                            }
-                          }}
-                        >
-                          {anime.isWatched ? <CheckCircle fontSize="small" /> : <CheckCircleOutline fontSize="small" />}
-                        </IconButton>
-                      </Tooltip>
+                              transition: 'all 200ms ease-in-out',
+                              opacity: loadingId === anime.id ? 0.5 : 1,
+                              '&:hover': {
+                                color: '#2e7d32',
+                                transform: 'scale(1.1)',
+                              },
+                              '&.Mui-disabled': {
+                                color: anime.isWatched ? '#2e7d32' : 'rgba(0,0,0,0.3)',
+                                opacity: 0.5,
+                              }
+                            }}
+                          >
+                            {anime.isWatched ? <CheckCircle fontSize="small" /> : <CheckCircleOutline fontSize="small" />}
+                          </IconButton>
+                        </Tooltip>
+                      )}
                     </Box>
                   </TableCell>
                 </TableRow>

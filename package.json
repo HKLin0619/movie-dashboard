@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start -H 0.0.0.0",
-    "lint": "next lint",
+    "lint": "eslint .",
     "build-and-start": "next build && next start",
     "pm2:start": "pm2 start ecosystem.config.js",
     "pm2:restart": "pm2 restart movie-dashboard",
@@ -32,6 +32,8 @@
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "eslint": "^9.23.0",
+    "eslint-config-next": "^16.1.6",
     "@types/node": "25.0.10",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
