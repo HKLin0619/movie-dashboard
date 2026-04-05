@@ -8,7 +8,13 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0",
     "lint": "next lint",
-    "build-and-start": "next build && next start"
+    "build-and-start": "next build && next start",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:restart": "pm2 restart movie-dashboard",
+    "pm2:stop": "pm2 stop movie-dashboard",
+    "pm2:delete": "pm2 delete movie-dashboard",
+    "pm2:logs": "pm2 logs movie-dashboard",
+    "pm2:save": "pm2 save"
   },
   "keywords": [],
   "author": "",
@@ -29,6 +35,7 @@
     "@types/node": "25.0.10",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "pm2": "^6.0.14",
     "typescript": "5.9.3"
   }
 }
