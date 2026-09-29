@@ -26,14 +26,14 @@ export async function getHomepageStats(): Promise<{
   favoriteCount: number;
 }> {
   const [animeResult, favoritesResult, settingsResult] = await Promise.all([
-    supabase.from("anime").select("id", { count: "exact", head: true }),
+    supabase.from("anime_movie_dashboard_anime").select("id", { count: "exact", head: true }),
 
     supabase
-      .from("favorites")
+      .from("anime_movie_dashboard_favorites")
       .select("anime_id", { count: "exact", head: true }),
 
     supabase
-      .from("app_settings")
+      .from("anime_movie_dashboard_app_settings")
       .select("value")
       .eq("key", "anime_last_updated")
       .maybeSingle(),
@@ -54,9 +54,9 @@ export async function getAnimeData(): Promise<Anime[]> {
   const [animeData, favoritesResult, watchedResult] = await Promise.all([
     readAllAnime(),
 
-    supabase.from("favorites").select("anime_id, added_date"),
+    supabase.from("anime_movie_dashboard_favorites").select("anime_id, added_date"),
 
-    supabase.from("watched").select("anime_id, watched_date"),
+    supabase.from("anime_movie_dashboard_watched").select("anime_id, watched_date"),
   ]);
 
   if (favoritesResult.error) throw favoritesResult.error;
@@ -93,7 +93,7 @@ async function readAllAnime() {
 
   for (let from = 0; ; from += pageSize) {
     const { data, error } = await supabase
-      .from("anime")
+      .from("anime_movie_dashboard_anime")
       .select("*")
       .order("id", { ascending: false })
       .range(from, from + pageSize - 1);
@@ -153,7 +153,7 @@ export async function refreshAnimeData(): Promise<{
     }));
 
     const { error: animeError } = await supabase
-      .from("anime")
+      .from("anime_movie_dashboard_anime")
       .upsert(animeRows, { onConflict: "id" });
 
     if (animeError) throw animeError;
@@ -161,7 +161,7 @@ export async function refreshAnimeData(): Promise<{
     const lastUpdated = new Date().toISOString();
 
     const { error: settingsError } = await supabase
-      .from("app_settings")
+      .from("anime_movie_dashboard_app_settings")
       .upsert({
         key: "anime_last_updated",
         value: lastUpdated,
@@ -182,7 +182,7 @@ export async function refreshAnimeData(): Promise<{
 
 export async function toggleFavorite(animeId: number): Promise<boolean> {
   const { data: existingFavorite, error: findError } = await supabase
-    .from("favorites")
+    .from("anime_movie_dashboard_favorites")
     .select("anime_id")
     .eq("anime_id", animeId)
     .maybeSingle();
@@ -191,7 +191,7 @@ export async function toggleFavorite(animeId: number): Promise<boolean> {
 
   if (existingFavorite) {
     const { error } = await supabase
-      .from("favorites")
+      .from("anime_movie_dashboard_favorites")
       .delete()
       .eq("anime_id", animeId);
 
@@ -203,7 +203,7 @@ export async function toggleFavorite(animeId: number): Promise<boolean> {
     return false;
   }
 
-  const { error } = await supabase.from("favorites").insert({
+  const { error } = await supabase.from("anime_movie_dashboard_favorites").insert({
     anime_id: animeId,
     added_date: new Date().toISOString(),
   });
@@ -218,7 +218,7 @@ export async function toggleFavorite(animeId: number): Promise<boolean> {
 
 export async function toggleWatched(animeId: number): Promise<boolean> {
   const { data: existingWatched, error: findError } = await supabase
-    .from("watched")
+    .from("anime_movie_dashboard_watched")
     .select("anime_id")
     .eq("anime_id", animeId)
     .maybeSingle();
@@ -227,7 +227,7 @@ export async function toggleWatched(animeId: number): Promise<boolean> {
 
   if (existingWatched) {
     const { error } = await supabase
-      .from("watched")
+      .from("anime_movie_dashboard_watched")
       .delete()
       .eq("anime_id", animeId);
 
@@ -239,7 +239,8 @@ export async function toggleWatched(animeId: number): Promise<boolean> {
     return false;
   }
 
-  const { error } = await supabase.from("watched").insert({
+
+  const { error } = await supabase.from("anime_movie_dashboard_watched").insert({
     anime_id: animeId,
     watched_date: new Date().toISOString(),
   });
