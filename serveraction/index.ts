@@ -1,92 +1,85 @@
-'use server';
+"use server";
 
-import { Anime, AnimeStore, FavoritesStore, WatchedStore } from '@/types/anime1';
-import { promises as fs } from 'fs';
-import path from 'path';
-import { revalidatePath } from 'next/cache';
-
-const STORE_PATH = path.join(process.cwd(), 'data', 'anime1', 'store.json');
-const FAVORITES_PATH = path.join(process.cwd(), 'data', 'anime1', 'favorites.json');
-const WATCHED_PATH = path.join(process.cwd(), 'data', 'anime1', 'watched.json');
-
-// ─── animeStore.json (API data only) ────────────────────────────────────────
-
-async function readStore(): Promise<AnimeStore> {
-  try {
-    const data = await fs.readFile(STORE_PATH, 'utf-8');
-    return JSON.parse(data);
-  } catch {
-    return { lastUpdated: null, animeList: [] };
-  }
-}
-
-async function writeStore(store: AnimeStore): Promise<void> {
-  await fs.writeFile(STORE_PATH, JSON.stringify(store, null, 2), 'utf-8');
-}
-
-// ─── favorites.json (user favorites, id + addedDate only) ───────────────────
-
-async function readFavorites(): Promise<FavoritesStore> {
-  try {
-    const data = await fs.readFile(FAVORITES_PATH, 'utf-8');
-    return JSON.parse(data);
-  } catch {
-    return { favorites: [] };
-  }
-}
-
-async function writeFavorites(store: FavoritesStore): Promise<void> {
-  await fs.writeFile(FAVORITES_PATH, JSON.stringify(store, null, 2), 'utf-8');
-}
-
-async function readWatched(): Promise<WatchedStore> {
-  try {
-    const data = await fs.readFile(WATCHED_PATH, 'utf-8');
-    return JSON.parse(data);
-  } catch {
-    return { watched: [] };
-  }
-}
-
-async function writeWatched(store: WatchedStore): Promise<void> {
-  await fs.writeFile(WATCHED_PATH, JSON.stringify(store, null, 2), 'utf-8');
-}
+import { Anime } from "@/types/anime1";
+import { supabase } from "@/lib/supabase";
+import { revalidatePath } from "next/cache";
 
 // ─── URL generator ──────────────────────────────────────────────────────────
 
 function generateAnimeUrl(title: string, year: string, season: string): string {
-  const seasonPart = season.includes('/') ? season.split('/')[0] : season;
+  const seasonPart = season.includes("/") ? season.split("/")[0] : season;
   const processedTitle = title
     .toLowerCase()
-    .replace(/[^\u4e00-\u9fa5a-z0-9\s～【】!！×-]/g, '')
+    .replace(/[^\u4e00-\u9fa5a-z0-9\s～【】!！×-]/g, "")
     .trim()
-    .replace(/\s+/g, '-');
-  const baseUrl = process.env.ANIME_CATEGORY_BASE_URL || 'https://anime1.me/category';
+    .replace(/\s+/g, "-");
+  const baseUrl =
+    process.env.ANIME_CATEGORY_BASE_URL || "https://anime1.me/category";
   return `${baseUrl}/${year}年${seasonPart}季/${processedTitle}`;
 }
 
 // ─── Public server actions ───────────────────────────────────────────────────
 
-export async function getHomepageStats(): Promise<{ lastUpdated: string | null; totalCount: number; favoriteCount: number }> {
-  const [store, favStore] = await Promise.all([readStore(), readFavorites()]);
+export async function getHomepageStats(): Promise<{
+  lastUpdated: string | null;
+  totalCount: number;
+  favoriteCount: number;
+}> {
+  const [animeResult, favoritesResult, settingsResult] = await Promise.all([
+    supabase.from("anime_movie_dashboard_anime").select("id", { count: "exact", head: true }),
+
+    supabase
+      .from("anime_movie_dashboard_favorites")
+      .select("anime_id", { count: "exact", head: true }),
+
+    supabase
+      .from("anime_movie_dashboard_app_settings")
+      .select("value")
+      .eq("key", "anime_last_updated")
+      .maybeSingle(),
+  ]);
+
+  if (animeResult.error) throw animeResult.error;
+  if (favoritesResult.error) throw favoritesResult.error;
+  if (settingsResult.error) throw settingsResult.error;
+
   return {
-    lastUpdated: store.lastUpdated,
-    totalCount: store.animeList.length,
-    favoriteCount: favStore.favorites.length,
+    lastUpdated: settingsResult.data?.value ?? null,
+    totalCount: animeResult.count ?? 0,
+    favoriteCount: favoritesResult.count ?? 0,
   };
 }
 
 export async function getAnimeData(): Promise<Anime[]> {
-  const [store, favStore, watchedStore] = await Promise.all([readStore(), readFavorites(), readWatched()]);
+  const [animeData, favoritesResult, watchedResult] = await Promise.all([
+    readAllAnime(),
 
-  const favoriteMap = new Map<number, string>(); // id → addedDate
-  favStore.favorites.forEach(f => favoriteMap.set(f.id, f.addedDate));
+    supabase.from("anime_movie_dashboard_favorites").select("anime_id, added_date"),
 
-  const watchedMap = new Map<number, string>(); // id → watchedDate
-  watchedStore.watched.forEach(w => watchedMap.set(w.id, w.watchedDate));
+    supabase.from("anime_movie_dashboard_watched").select("anime_id, watched_date"),
+  ]);
 
-  return store.animeList.map(anime => ({
-    ...anime,
+  if (favoritesResult.error) throw favoritesResult.error;
+  if (watchedResult.error) throw watchedResult.error;
+
+  const favoriteMap = new Map<number, string>();
+  favoritesResult.data.forEach((favorite) => {
+    favoriteMap.set(favorite.anime_id, favorite.added_date);
+  });
+
+  const watchedMap = new Map<number, string>();
+  watchedResult.data.forEach((watched) => {
+    watchedMap.set(watched.anime_id, watched.watched_date);
+  });
+
+  return animeData.map((anime) => ({
+    id: anime.id,
+    title: anime.title,
+    episodes: anime.episodes,
+    year: anime.year,
+    season: anime.season,
+    subtitleGroup: anime.subtitle_group,
+    url: anime.url,
     isFavorite: favoriteMap.has(anime.id),
     addedDate: favoriteMap.get(anime.id),
     isWatched: watchedMap.has(anime.id),
@@ -94,80 +87,168 @@ export async function getAnimeData(): Promise<Anime[]> {
   }));
 }
 
-export async function refreshAnimeData(): Promise<{ success: boolean; count: number; error?: string }> {
-  try {
-    const apiUrl = process.env.NEXT_PUBLIC_ANIME_API_URL || 'https://anime1.me/animelist.json';
+async function readAllAnime() {
+  const pageSize = 1000;
+  const allAnime = [];
 
-    const response = await fetch(apiUrl, { cache: 'no-store' });
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("anime_movie_dashboard_anime")
+      .select("*")
+      .order("id", { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (error) throw error;
+
+    allAnime.push(...data);
+
+    if (data.length < pageSize) {
+      break;
+    }
+  }
+
+  return allAnime;
+}
+
+export async function refreshAnimeData(): Promise<{
+  success: boolean;
+  count: number;
+  error?: string;
+}> {
+  try {
+    const apiUrl =
+      process.env.NEXT_PUBLIC_ANIME_API_URL ||
+      "https://anime1.me/animelist.json";
+
+    const response = await fetch(apiUrl, { cache: "no-store" });
     if (!response.ok) throw new Error(`API returned status ${response.status}`);
 
-    const data: [number, string, string, string, string, string][] = await response.json();
+    const data: [number, string, string, string, string, string][] =
+      await response.json();
 
-    const animeList: Anime[] = data.map(([id, title, episodes, year, season, subtitleGroup]) => ({
-      id,
-      title,
-      episodes,
-      year,
-      season,
-      subtitleGroup,
-      url: generateAnimeUrl(title, year, season),
+    const animeList: Anime[] = data.map(
+      ([id, title, episodes, year, season, subtitleGroup]) => ({
+        id,
+        title,
+        episodes,
+        year,
+        season,
+        subtitleGroup,
+        url: generateAnimeUrl(title, year, season),
+      }),
+    );
+
+    const uniqueAnimeList = Array.from(
+      new Map(animeList.map((anime) => [anime.id, anime])).values(),
+    );
+
+    const animeRows = uniqueAnimeList.map((anime) => ({
+      id: anime.id,
+      title: anime.title,
+      episodes: anime.episodes,
+      year: anime.year,
+      season: anime.season,
+      subtitle_group: anime.subtitleGroup,
+      url: anime.url,
     }));
 
-    await writeStore({
-      lastUpdated: new Date().toISOString(),
-      animeList,
-    });
+    const { error: animeError } = await supabase
+      .from("anime_movie_dashboard_anime")
+      .upsert(animeRows, { onConflict: "id" });
+
+    if (animeError) throw animeError;
+
+    const lastUpdated = new Date().toISOString();
+
+    const { error: settingsError } = await supabase
+      .from("anime_movie_dashboard_app_settings")
+      .upsert({
+        key: "anime_last_updated",
+        value: lastUpdated,
+      });
+
+    if (settingsError) throw settingsError;
 
     // Refresh pages that depend on local JSON files.
-    revalidatePath('/');
-    revalidatePath('/anime');
+    revalidatePath("/");
+    revalidatePath("/anime");
 
-    return { success: true, count: animeList.length };
+    return { success: true, count: uniqueAnimeList.length };
   } catch (error) {
-    console.error('Error refreshing anime data:', error);
+    console.error("Error refreshing anime data:", error);
     return { success: false, count: 0, error: String(error) };
   }
 }
 
 export async function toggleFavorite(animeId: number): Promise<boolean> {
-  const favStore = await readFavorites();
+  const { data: existingFavorite, error: findError } = await supabase
+    .from("anime_movie_dashboard_favorites")
+    .select("anime_id")
+    .eq("anime_id", animeId)
+    .maybeSingle();
 
-  const existingIndex = favStore.favorites.findIndex(f => f.id === animeId);
-  const isNowFavorite = existingIndex === -1;
+  if (findError) throw findError;
 
-  if (isNowFavorite) {
-    favStore.favorites.push({ id: animeId, addedDate: new Date().toISOString() });
-  } else {
-    favStore.favorites.splice(existingIndex, 1);
+  if (existingFavorite) {
+    const { error } = await supabase
+      .from("anime_movie_dashboard_favorites")
+      .delete()
+      .eq("anime_id", animeId);
+
+    if (error) throw error;
+
+    revalidatePath("/");
+    revalidatePath("/anime");
+
+    return false;
   }
 
-  await writeFavorites(favStore);
+  const { error } = await supabase.from("anime_movie_dashboard_favorites").insert({
+    anime_id: animeId,
+    added_date: new Date().toISOString(),
+  });
 
-  // Ensure refreshed navigation reads latest favorites from disk.
-  revalidatePath('/');
-  revalidatePath('/anime');
+  if (error) throw error;
 
-  return isNowFavorite;
+  revalidatePath("/");
+  revalidatePath("/anime");
+
+  return true;
 }
 
 export async function toggleWatched(animeId: number): Promise<boolean> {
-  const watchedStore = await readWatched();
+  const { data: existingWatched, error: findError } = await supabase
+    .from("anime_movie_dashboard_watched")
+    .select("anime_id")
+    .eq("anime_id", animeId)
+    .maybeSingle();
 
-  const existingIndex = watchedStore.watched.findIndex(w => w.id === animeId);
-  const isNowWatched = existingIndex === -1;
+  if (findError) throw findError;
 
-  if (isNowWatched) {
-    watchedStore.watched.push({ id: animeId, watchedDate: new Date().toISOString() });
-  } else {
-    watchedStore.watched.splice(existingIndex, 1);
+  if (existingWatched) {
+    const { error } = await supabase
+      .from("anime_movie_dashboard_watched")
+      .delete()
+      .eq("anime_id", animeId);
+
+    if (error) throw error;
+
+    revalidatePath("/");
+    revalidatePath("/anime");
+
+    return false;
   }
 
-  await writeWatched(watchedStore);
 
-  // Ensure refreshed page reads latest watched status from disk.
-  revalidatePath('/');
-  revalidatePath('/anime');
+  const { error } = await supabase.from("anime_movie_dashboard_watched").insert({
+    anime_id: animeId,
+    watched_date: new Date().toISOString(),
+  });
 
-  return isNowWatched;
+  if (error) throw error;
+
+  revalidatePath("/");
+  revalidatePath("/anime");
+
+  return true;
 }
-
